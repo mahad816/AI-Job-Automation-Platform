@@ -1,0 +1,634 @@
+{
+  "name": "AI Job Application Automation Platform - Screenshot Intake",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "Job Screenshots for n8n",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/YOUR_GOOGLE_DRIVE_FOLDER_ID"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        -240
+      ],
+      "id": "c7dc1458-7c8e-48f7-8ead-f4906756e8f6",
+      "name": "New Job Screenshot Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -304,
+        -240
+      ],
+      "id": "74816b0a-c3be-45b2-88fe-bd57e73e2cc4",
+      "name": "Download Job Screenshot",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\n\nconst binaryPropertyName = \"data\";\nconst binary = item.binary[binaryPropertyName];\n\n// Get the real binary file as a buffer\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryPropertyName);\n\n// Convert image to Base64\nconst base64Image = buffer.toString(\"base64\");\n\nconst prompt = `\nYou are an AI job post extractor and job-fit evaluator.\n\nAnalyze the uploaded job screenshot/image. Read all visible text and infer job details.\n\nCandidate profile:\nMahad Ali is a BS Computer Science graduate from GIKI, Pakistan.\n\nTarget roles:\nAI Automation Engineer, Backend Engineer, Full Stack Engineer, AI/LLM Engineer, Cloud/Distributed Systems Engineer, Junior Software Engineer, Technical Automation role.\n\nStrong skills:\nPython, JavaScript, C++, FastAPI, Django, Next.js, React, Tailwind CSS, REST APIs, JWT authentication, backend development, SQLite, PostgreSQL, Git, Linux, Docker, AWS EC2.\n\nAI/Data skills:\nLLM applications, Ollama, Llama 3.1, Gemini API, NLP, sentiment analysis, category classification, ELT pipelines, federated learning, Flower, homomorphic encryption, Paillier encryption.\n\nRelevant experience:\n- PTCL Group: on-prem Llama 3.1 review analytics platform.\n- PTCL Group: Python ELT pipeline for scraping, cleaning, normalization, and processing.\n- PTCL Group: secure APIs, JWT auth, Next.js dashboards, SQLite storage.\n- PIE: Django publications portal with filters, admin interface, and in-house deployment.\n- CoreChain: federated learning using Flower, Docker, AWS, Hyperledger concepts, and Paillier homomorphic encryption.\n- CoreChain achieved 97.9% model accuracy and placed 2nd in GIKI Industrial Open House Data Science category.\n- Built an n8n + Gemini Vision job automation workflow using Google Drive, Google Sheets, Gmail, JSON parsing, duplicate detection, and AI fit scoring.\n\nEvaluation rules:\nGive a fit_score from 0 to 100.\n\nBase scoring:\n90-100 = excellent match; strong skills, experience level, location, and role fit.\n75-89 = strong match; most requirements match with minor gaps.\n60-74 = decent match; useful role but clear concerns.\n40-59 = weak but possible; major mismatch in eligibility, location, or experience.\nBelow 40 = poor match; not worth applying.\n\nPositive signals:\n- Python, backend APIs, AI/LLM apps, automation, workflow tools, n8n, Power Automate, Zapier, Django, FastAPI, Next.js, React, data pipelines, Docker, AWS, databases, APIs, JSON, Google Sheets, document parsing, prompt engineering.\n- Junior, entry-level, new-grad, internship-eligible, 0-2 years, or no experience required.\n- Remote roles open globally or open to Pakistan-based candidates.\n- AI automation, prompt engineering, document parsing, workflow automation, LLM integration, data mapping, or configuration generation.\n\nPenalty rules:\n- Subtract 25 points if local presence is required outside Pakistan.\n- Subtract 20 points if current Master's enrollment is required.\n- Subtract 20 points if 3+ years professional experience is required.\n- Subtract 30 points if 5+ years, senior, staff, or lead-level experience is required.\n- Subtract 20 points if visa/work authorization is unlikely.\n- Subtract 25 points if unpaid or equity-only.\n- Subtract 10-15 points for important missing but learnable tools.\n\nFinal score must reflect practical apply-worthiness, not just technical similarity.\n\nIMPORTANT OUTPUT RULES:\nKeep all responses concise and spreadsheet-friendly.\n\nsummary:\n- Maximum 20 words.\n- One sentence only.\n- Explain whether the job is worth applying to.\n\nfit_reason:\n- Maximum 15 words.\n- One sentence only.\n\nskills:\n- Maximum 5 items.\n- Use short skill/tool names only.\n\nmissing_skills:\n- Maximum 4 items.\n- Use short skill/tool names only.\n\nresume_points_to_highlight:\n- Maximum 4 items.\n- Use project names or keywords only.\n- No explanations.\n\nnext_action:\n- Maximum 12 words.\n- Action-oriented.\n\nAvoid paragraphs.\nAvoid recruiter-style writing.\nAvoid repeating information already present elsewhere.\nReturn concise data optimized for Google Sheets.\n\nReturn ONLY valid JSON. No markdown. No explanation outside JSON.\n\nUse this exact structure:\n{\n  \"company\": \"\",\n  \"role\": \"\",\n  \"skills\": [],\n  \"experience_required\": \"\",\n  \"remote_type\": \"\",\n  \"platform\": \"\",\n  \"deadline\": \"\",\n  \"fit_score\": 0,\n  \"summary\": \"\",\n  \"fit_reason\": \"\",\n  \"missing_skills\": [],\n  \"resume_points_to_highlight\": [],\n  \"next_action\": \"\"\n}\n`;\n\nreturn [\n  {\n    json: {\n      requestBody: {\n        contents: [\n          {\n            parts: [\n              { text: prompt },\n              {\n                inlineData: {\n                  mimeType: binary.mimeType,\n                  data: base64Image\n                }\n              }\n            ]\n          }\n        ]\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -240
+      ],
+      "id": "5d37a445-ad23-418e-9b31-206d67366ea4",
+      "name": "Prepare Gemini Vision Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        192,
+        -240
+      ],
+      "id": "5a09cd56-29c9-4404-b754-99b203e7d190",
+      "name": "Analyse Screenshot with Gemini",
+      "retryOnFail": true,
+      "maxTries": 4
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\n\nconst text = item.json.candidates[0].content.parts[0].text;\n\nconst cleaned = text\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nconst parsed = JSON.parse(cleaned);\n\n// Get original Google Drive file metadata from the trigger node\nconst sourceFileName = $(\"New Job Screenshot Trigger\").first().json.name || \"\";\nconst sourceFileId = $(\"New Job Screenshot Trigger\").first().json.id || \"\";\n\n// Fit score + priority classification\nconst fitScore = Number(parsed.fit_score || 0);\n\nlet priority = \"Ignore\";\n\nif (fitScore >= 90) {\n  priority = \"Excellent\";\n} else if (fitScore >= 75) {\n  priority = \"Strong\";\n} else if (fitScore >= 60) {\n  priority = \"Medium\";\n} else if (fitScore >= 40) {\n  priority = \"Weak\";\n}\n\nreturn [\n  {\n    json: {\n      \"Date Added\": new Date().toLocaleDateString(\"en-GB\"),\n      \"Company\": parsed.company || \"Unknown\",\n      \"Role\": parsed.role || \"\",\n      \"Job Link\": \"N/A\",\n      \"Platform\": parsed.platform || \"Screenshot\",\n      \"Status\": \"New\",\n      \"Deadline\": parsed.deadline || \"N/A\",\n      \"Follow-up Date\": \"N/A\",\n      \"Email Sent?\": \"No\",\n      \"Skills\": Array.isArray(parsed.skills) ? parsed.skills.join(\", \") : parsed.skills || \"\",\n      \"Experience Required\": parsed.experience_required || \"\",\n      \"Remote Type\": parsed.remote_type || \"\",\n      \"Fit Score\": fitScore,\n      \"Priority\": priority,\n      \"Summary\": parsed.summary || \"\",\n      \"Fit Reason\": parsed.fit_reason || \"\",\n      \"Missing Skills\": Array.isArray(parsed.missing_skills) ? parsed.missing_skills.join(\", \") : parsed.missing_skills || \"\",\n      \"Resume Points To Highlight\": Array.isArray(parsed.resume_points_to_highlight) ? parsed.resume_points_to_highlight.join(\", \") : parsed.resume_points_to_highlight || \"\",\n      \"Next Action\": parsed.next_action || \"\",\n      \"Source File Name\": sourceFileName,\n      \"Source File ID\": sourceFileId\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        48
+      ],
+      "id": "9e0ddf70-ac8a-48f6-bfc9-f7fb19207f30",
+      "name": "Parse AI Job Analysis"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEETS_DOCUMENT_ID",
+          "mode": "list",
+          "cachedResultName": "Job Application Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEETS_DOCUMENT_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEETS_DOCUMENT_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date Added": "={{ new Date().toLocaleDateString('en-GB') }}",
+            "Platform": "={{ $json[\"Platform\"] }}",
+            "Status": "={{ $json[\"Status\"] }}",
+            "Deadline": "={{ $json[\"Deadline\"] }}",
+            "Follow-up Date": "={{ $json[\"Follow-up Date\"] }}",
+            "Email Sent?": "={{ $json[\"Email Sent?\"] }}",
+            "Skills": "={{ $json[\"Skills\"] }}",
+            "Experience Required": "={{ $json[\"Experience Required\"] }}",
+            "Remote Type": "={{ $json[\"Remote Type\"] }}",
+            "Fit Score": "={{ $json[\"Fit Score\"] }}",
+            "Fit Reason": "={{ $json[\"Fit Reason\"] }}",
+            "Missing Skills": "={{ $json[\"Missing Skills\"] }}",
+            "Resume Points To Highlight": "={{ $json[\"Resume Points To Highlight\"] }}",
+            "Next Action": "={{ $json[\"Next Action\"] }}",
+            "Source File Name": "={{ $json[\"Source File Name\"] }}",
+            "Source File ID": "={{ $json[\"Source File ID\"] }}",
+            "Priority": "={{ $json[\"Priority\"] }}",
+            "Summary": "={{ $json[\"Summary\"] }}",
+            "Company": "={{ $json.Company }}",
+            "Role": "={{ $json.Role }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date Added",
+              "displayName": "Date Added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Platform",
+              "displayName": "Platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Deadline",
+              "displayName": "Deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow-up Date",
+              "displayName": "Follow-up Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Sent?",
+              "displayName": "Email Sent?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Skills",
+              "displayName": "Skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Experience Required",
+              "displayName": "Experience Required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Remote Type",
+              "displayName": "Remote Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fit Score",
+              "displayName": "Fit Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fit Reason",
+              "displayName": "Fit Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Missing Skills",
+              "displayName": "Missing Skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Resume Points To Highlight",
+              "displayName": "Resume Points To Highlight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Next Action",
+              "displayName": "Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source File Name",
+              "displayName": "Source File Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source File ID",
+              "displayName": "Source File ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        432,
+        192
+      ],
+      "id": "972fa7ec-a426-43e6-871a-273004002b40",
+      "name": "Save Job to Google-Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a972ff5-3bff-4072-ad64-f0f1d8f2b3f4",
+              "leftValue": "={{ $json['Fit Score'] }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        656,
+        192
+      ],
+      "id": "751880e8-8239-4237-93b0-39845424fa0c",
+      "name": "Check High Fit Score"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@gmail.com",
+        "subject": "=High Fit Job Found: {{ $json[\"Role\"] }} at {{ $json[\"Company\"] }}",
+        "message": "=<h2>🚀 High-Fit Job Detected</h2>\n\n<hr>\n\n<p><b>📋 Company:</b> {{$json[\"Company\"]}}</p>\n\n<p><b>💼 Role:</b> {{$json[\"Role\"]}}</p>\n\n<p><b>📊 Fit Score:</b> {{$json[\"Fit Score\"]}} / 100</p>\n\n<p><b>🌍 Remote Type:</b> {{$json[\"Remote Type\"]}}</p>\n\n<p><b>📅 Experience Required:</b><br>\n{{$json[\"Experience Required\"]}}\n</p>\n\n<hr>\n\n<h3>✅ Why This Fits You</h3>\n\n<p>\n{{$json[\"Fit Reason\"]}}\n</p>\n\n<h3>⚠️ Missing Skills</h3>\n\n<p>\n{{$json[\"Missing Skills\"]}}\n</p>\n\n<h3>🎯 Resume Points To Highlight</h3>\n\n<p>\n{{$json[\"Resume Points To Highlight\"]}}\n</p>\n\n<h3>📌 Recommended Next Action</h3>\n\n<p>\n{{$json[\"Next Action\"]}}\n</p>\n\n<hr>\n\n<p>\n<small>\nGenerated automatically by Mahad's AI Job Tracker\n</small>\n</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        96
+      ],
+      "id": "1890ebbc-f7b4-4ba0-a819-c46ccbeebafe",
+      "name": "Send High Fit Job Alert",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEETS_DOCUMENT_ID",
+          "mode": "list",
+          "cachedResultName": "Job Application Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEETS_DOCUMENT_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEETS_DOCUMENT_ID/edit#gid=0"
+        },
+        "options": {
+          "outputFormatting": {
+            "values": {
+              "general": "UNFORMATTED_VALUE",
+              "date": "FORMATTED_STRING"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -304,
+        48
+      ],
+      "id": "f1a35798-475b-435e-895f-d37ec0e8cb08",
+      "name": "Check Existing Jobs in Sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentJob = $(\"Parse AI Job Analysis\").first().json;\n\nconst currentFileId = (currentJob[\"Source File ID\"] || \"\").trim();\nconst currentCompany = (currentJob[\"Company\"] || \"\").trim().toLowerCase();\nconst currentRole = (currentJob[\"Role\"] || \"\").trim().toLowerCase();\n\nlet duplicateFound = false;\nlet duplicateReason = \"\";\n\nfor (const row of $input.all()) {\n  const existingFileId = (row.json[\"Source File ID\"] || \"\").trim();\n  const existingCompany = (row.json[\"Company\"] || \"\").trim().toLowerCase();\n  const existingRole = (row.json[\"Role\"] || \"\").trim().toLowerCase();\n\n  // Skip empty placeholder rows from Always Output Data\n  if (!existingFileId && !existingCompany && !existingRole) {\n    continue;\n  }\n\n  if (currentFileId && existingFileId && existingFileId === currentFileId) {\n    duplicateFound = true;\n    duplicateReason = \"Same Source File ID\";\n    break;\n  }\n\n  if (\n    currentCompany &&\n    currentRole &&\n    existingCompany === currentCompany &&\n    existingRole === currentRole\n  ) {\n    duplicateFound = true;\n    duplicateReason = \"Same Company and Role\";\n    break;\n  }\n}\n\nreturn [\n  {\n    json: {\n      ...currentJob,\n      duplicate: duplicateFound,\n      duplicateReason,\n      currentFileId\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        48
+      ],
+      "id": "a3289c79-87c3-4d9c-8592-f0af40fac345",
+      "name": "Check Duplicate Screenshot"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1157d54c-6b5e-48c6-be16-ab8d40c3aa52",
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        176,
+        48
+      ],
+      "id": "a1e42410-6612-4c65-bf87-a1f6538cca7d",
+      "name": "Is Duplicate Screenshot?"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "New Job Screenshot Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download Job Screenshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Job Screenshot": {
+      "main": [
+        [
+          {
+            "node": "Prepare Gemini Vision Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Gemini Vision Request": {
+      "main": [
+        [
+          {
+            "node": "Analyse Screenshot with Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyse Screenshot with Gemini": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Job Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Job Analysis": {
+      "main": [
+        [
+          {
+            "node": "Check Existing Jobs in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Job to Google-Sheets": {
+      "main": [
+        [
+          {
+            "node": "Check High Fit Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check High Fit Score": {
+      "main": [
+        [
+          {
+            "node": "Send High Fit Job Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Existing Jobs in Sheet": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate Screenshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate Screenshot": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate Screenshot?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate Screenshot?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Save Job to Google-Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a0340a7b-8cb1-4dcf-991e-5a3efbf5e442",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodeGroups": [],
+  "id": "vG6feglmhw7z8UqV",
+  "tags": []
+}
