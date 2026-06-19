@@ -1,0 +1,16 @@
+# Environment variables
+.env
+*.env
+
+# Credentials and secrets
+credentials.json
+token.json
+secrets.json
+*.key
+*.pem
+
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
