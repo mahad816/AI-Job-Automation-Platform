@@ -41,7 +41,8 @@ This project was built to automate part of the job application workflow. Instead
 
 ## Sample Output
 
-![Google Sheets Output](screenshots/google-sheets-output.png)
+![Google Sheets Output 1](screenshots/google-sheets-output-1.png)
+![Google Sheets Output 2](screenshots/google-sheets-output-2.png)
 
 ## Email Alert
 
